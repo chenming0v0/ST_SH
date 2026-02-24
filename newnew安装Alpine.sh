@@ -194,93 +194,6 @@ if ! grep -q "$MARKER" /root/.profile 2>/dev/null; then
 
 # --- 辰林酒馆登录脚本 ---
 
-# ========== 自定义进度条函数 ==========
-show_progress() {
-    local label="$1"
-    local target_dir="$2"
-    local est_size_mb="$3"
-    local bg_pid="$4"
-    local bar_width=40
-    local spin_chars='/-\|'
-    local spin_len=4
-    local spin_idx=0
-    local start_time=$(date +%s)
-
-    while kill -0 "$bg_pid" 2>/dev/null; do
-        local current_kb=0
-        if [ -d "$target_dir" ]; then
-            current_kb=$(du -sk "$target_dir" 2>/dev/null | cut -f1)
-        fi
-        local current_mb=$((current_kb / 1024))
-
-        local pct=0
-        if [ "$est_size_mb" -gt 0 ]; then
-            pct=$((current_mb * 100 / est_size_mb))
-        fi
-        if [ "$pct" -gt 99 ]; then
-            pct=99
-        fi
-
-        local now=$(date +%s)
-        local elapsed=$((now - start_time))
-        local mins=$((elapsed / 60))
-        local secs=$((elapsed % 60))
-        local time_str=$(printf "%02d:%02d" "$mins" "$secs")
-
-        local filled=$((pct * bar_width / 100))
-        local empty=$((bar_width - filled))
-        local bar=""
-        local i=0
-        while [ "$i" -lt "$filled" ]; do
-            bar="${bar}#"
-            i=$((i + 1))
-        done
-        i=0
-        while [ "$i" -lt "$empty" ]; do
-            bar="${bar}-"
-            i=$((i + 1))
-        done
-
-        local spin_char=$(echo "$spin_chars" | cut -c$((spin_idx + 1)))
-        spin_idx=$(( (spin_idx + 1) % spin_len ))
-
-        printf "\r  %s %s [%s] %3d%% %dMB/%dMB %s " \
-            "$spin_char" "$label" "$bar" "$pct" "$current_mb" "$est_size_mb" "$time_str"
-
-        sleep 0.5
-    done
-
-    wait "$bg_pid"
-    local exit_code=$?
-
-    local final_kb=0
-    if [ -d "$target_dir" ]; then
-        final_kb=$(du -sk "$target_dir" 2>/dev/null | cut -f1)
-    fi
-    local final_mb=$((final_kb / 1024))
-    local now=$(date +%s)
-    local elapsed=$((now - start_time))
-    local mins=$((elapsed / 60))
-    local secs=$((elapsed % 60))
-    local time_str=$(printf "%02d:%02d" "$mins" "$secs")
-
-    if [ "$exit_code" -eq 0 ]; then
-        local full_bar=""
-        local i=0
-        while [ "$i" -lt "$bar_width" ]; do
-            full_bar="${full_bar}#"
-            i=$((i + 1))
-        done
-        printf "\r  * %s [%s] 100%% %dMB %s    \n" \
-            "$label" "$full_bar" "$final_mb" "$time_str"
-    else
-        printf "\r  X %s failed (exit: %d) %s    \n" \
-            "$label" "$exit_code" "$time_str"
-    fi
-
-    return $exit_code
-}
-
 cat << 'WELCOME'
 
 =====================================================================
@@ -294,21 +207,13 @@ WELCOME
 if [ ! -d "/root/SillyTavern" ]; then
     echo ">>> 正在克隆 SillyTavern 仓库..."
     echo ""
-
     cd /root
-    git clone --quiet https://gitee.com/mirrors/sillytavern.git SillyTavern > /tmp/git_clone.log 2>&1 &
-    CLONE_PID=$!
-
-    if ! show_progress "克隆仓库" "/root/SillyTavern" 200 "$CLONE_PID"; then
+    if ! git clone --progress https://gitee.com/mirrors/sillytavern.git SillyTavern; then
         echo ""
         echo ">>> Gitee 克隆失败，尝试 GitHub..."
         rm -rf /root/SillyTavern 2>/dev/null
         echo ""
-
-        git clone --quiet https://github.com/SillyTavern/SillyTavern.git SillyTavern > /tmp/git_clone.log 2>&1 &
-        CLONE_PID=$!
-
-        if ! show_progress "克隆仓库(GitHub)" "/root/SillyTavern" 200 "$CLONE_PID"; then
+        if ! git clone --progress https://github.com/SillyTavern/SillyTavern.git SillyTavern; then
             echo ""
             cat << 'CLONE_FAIL'
 =====================================================================
@@ -326,16 +231,10 @@ if [ -d "/root/SillyTavern" ] && [ ! -d "/root/SillyTavern/node_modules" ]; then
     echo ""
     echo ">>> 正在安装 SillyTavern 依赖..."
     echo ""
-
     cd /root/SillyTavern
-    npm install --no-audit --no-fund --loglevel=silent > /tmp/npm_install.log 2>&1 &
-    NPM_PID=$!
-
-    if ! show_progress "安装依赖" "/root/SillyTavern/node_modules" 150 "$NPM_PID"; then
+    if ! npm install --no-audit --no-fund; then
         echo ""
-        echo ">>> npm install 失败，最后 20 行日志:"
-        tail -20 /tmp/npm_install.log 2>/dev/null
-        echo ""
+        echo ">>> npm install 失败"
         cat << 'NPM_FAIL'
 =====================================================================
   依赖安装失败！请手动执行以下命令:
