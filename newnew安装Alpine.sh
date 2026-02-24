@@ -205,21 +205,24 @@ WELCOME
 
 # 克隆 SillyTavern（如果不存在）
 if [ ! -d "/root/SillyTavern" ]; then
-    echo ">>> 正在克隆 SillyTavern 仓库..."
+    echo ">>> 正在克隆 SillyTavern (release 分支, 仅最新版本)..."
     echo ""
     cd /root
-    if ! git clone --progress https://gitee.com/mirrors/sillytavern.git SillyTavern; then
+    if ! git clone --progress --branch release --single-branch --depth 1 \
+        https://gitee.com/mirrors/sillytavern.git SillyTavern; then
         echo ""
         echo ">>> Gitee 克隆失败，尝试 GitHub..."
         rm -rf /root/SillyTavern 2>/dev/null
         echo ""
-        if ! git clone --progress https://github.com/SillyTavern/SillyTavern.git SillyTavern; then
+        if ! git clone --progress --branch release --single-branch --depth 1 \
+            https://github.com/SillyTavern/SillyTavern.git SillyTavern; then
             echo ""
             cat << 'CLONE_FAIL'
 =====================================================================
   克隆失败！请手动执行以下命令:
 
-  git clone https://gitee.com/mirrors/sillytavern.git SillyTavern
+  git clone --branch release --depth 1 \
+    https://gitee.com/mirrors/sillytavern.git SillyTavern
 =====================================================================
 CLONE_FAIL
         fi
@@ -255,8 +258,10 @@ if [ -d "/root/SillyTavern" ]; then
   启动酒馆:   cd ~/SillyTavern && node server.js
   浏览器打开:  http://localhost:8000
 
-  酒馆更新在设置启动按钮后在主页更新
-  由于使用镜像源，更新可能有延迟
+  更新酒馆:   cd ~/SillyTavern && git pull
+  或在酒馆设置页面点击更新按钮
+
+  由于使用 Gitee 镜像源，更新可能有最多一天的延迟
 
   该脚本由辰林制作，知识产权归辰林所有
 =====================================================================
@@ -268,8 +273,9 @@ else
 =====================================================================
   SillyTavern 未找到，请手动安装:
 
-  git clone https://gitee.com/mirrors/sillytavern.git SillyTavern
-  cd SillyTavern && npm install && npm start
+  git clone --branch release --depth 1 \
+    https://gitee.com/mirrors/sillytavern.git SillyTavern
+  cd SillyTavern && npm install && node server.js
 
   该脚本由辰林制作，知识产权归辰林所有
 =====================================================================
@@ -348,8 +354,9 @@ cleanup_and_finish() {
 
   请重启 Termux 使自动启动生效
 
-  酒馆更新在设置启动按钮后在主页更新
-  由于使用镜像源，更新可能有延迟
+  酒馆更新:  进入 Alpine 后执行 cd ~/SillyTavern && git pull
+  或在酒馆设置页面点击更新按钮
+  由于使用 Gitee 镜像源，更新可能有最多一天的延迟
 
   该脚本由辰林制作，知识产权归辰林所有
 =====================================================================
