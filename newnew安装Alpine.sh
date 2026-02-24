@@ -201,8 +201,8 @@ show_progress() {
     local est_size_mb="$3"
     local bg_pid="$4"
     local bar_width=40
-    local spin_chars='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-    local spin_len=${#spin_chars}
+    local spin_chars='/-\|'
+    local spin_len=4
     local spin_idx=0
     local start_time=$(date +%s)
 
@@ -232,19 +232,19 @@ show_progress() {
         local bar=""
         local i=0
         while [ "$i" -lt "$filled" ]; do
-            bar="${bar}█"
+            bar="${bar}#"
             i=$((i + 1))
         done
         i=0
         while [ "$i" -lt "$empty" ]; do
-            bar="${bar}░"
+            bar="${bar}-"
             i=$((i + 1))
         done
 
         local spin_char=$(echo "$spin_chars" | cut -c$((spin_idx + 1)))
         spin_idx=$(( (spin_idx + 1) % spin_len ))
 
-        printf "\r  %s %s │%s│ %3d%% %dMB/%dMB %s " \
+        printf "\r  %s %s [%s] %3d%% %dMB/%dMB %s " \
             "$spin_char" "$label" "$bar" "$pct" "$current_mb" "$est_size_mb" "$time_str"
 
         sleep 0.5
@@ -268,13 +268,13 @@ show_progress() {
         local full_bar=""
         local i=0
         while [ "$i" -lt "$bar_width" ]; do
-            full_bar="${full_bar}█"
+            full_bar="${full_bar}#"
             i=$((i + 1))
         done
-        printf "\r  ✓ %s │%s│ 100%% %dMB %s    \n" \
+        printf "\r  * %s [%s] 100%% %dMB %s    \n" \
             "$label" "$full_bar" "$final_mb" "$time_str"
     else
-        printf "\r  ✗ %s 失败 (退出码: %d) %s    \n" \
+        printf "\r  X %s failed (exit: %d) %s    \n" \
             "$label" "$exit_code" "$time_str"
     fi
 
@@ -430,7 +430,7 @@ cleanup_and_finish() {
     if [ -d "$ALPINE_FS_DIR/root" ]; then
         rm -rf "$SYMLINK_PATH" 2>/dev/null || true
         ln -s "$ALPINE_FS_DIR/root" "$SYMLINK_PATH"
-        log_info "软链接: $SYMLINK_PATH → Alpine /root"
+        log_info "软链接: $SYMLINK_PATH -> Alpine /root"
     fi
 
     cat << DONE
